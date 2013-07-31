@@ -12,6 +12,8 @@ import com.lyndir.omicron.api.model.*;
 import java.util.EnumMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
+
+import com.lyndir.omicron.api.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
 
 
@@ -143,16 +145,48 @@ public class MobilityModule extends Module {
      * Move the unit to an adjacent tile.
      *
      * @param currentPlayer The player ordering the action.
-     * @param target        The side of the adjacent tile relative to the current.
+     * @param target        The tile to move to.
      */
     public boolean move(final Player currentPlayer, final Tile target) {
 
-        if (!currentPlayer.equals( getGameObject().getPlayer() ))
-            // Cannot move object that doesn't belong to the current player.
+        Optional<Path<Tile>> path = getPath(currentPlayer, target);
+
+        if (!path.isPresent())
             return false;
 
+        remainingSpeed = path.get().getCost();
+        getGameObject().getLocation().setContents( null );
+        getGameObject().setLocation( path.get().getTarget() );
+        path.get().getTarget().setContents( getGameObject() );
+
+        return true;
+    }
+
+    /**
+     * Tests if this unit can move to the specified tile.
+     *
+     * @param currentPlayer The player ordering the action.
+     * @param target        The tile to move to.
+     */
+    public boolean canMove(final Player currentPlayer, final Tile target) {
+
+        return getPath(currentPlayer, target).isPresent();
+    }
+
+    /**
+     * Standard pathfinder used to try and find the path between any two tiles on the map.
+     *
+     * @param currentPlayer The player ordering the action.
+     * @param target        The tile to find the path to.
+     */
+    private Optional<Path<Tile>> getPath(final Player currentPlayer, final Tile target) {
+
+        if (!currentPlayer.equals( getGameObject().getPlayer() ))
+            // Cannot move object that doesn't belong to the current player.
+            return Optional.absent();
+
         if (!level( currentPlayer, target.getLevel().getType() ))
-            return false;
+            return Optional.absent();
 
         // Initialize cost calculation.
         Tile currentLocation = getGameObject().getLocation();
@@ -163,7 +197,7 @@ public class MobilityModule extends Module {
             @Override
             public boolean apply(@Nonnull final Tile input) {
 
-                return ObjectUtils.isEqual( input, target );
+                return ObjectUtils.isEqual(input, target);
             }
         };
         NNFunctionNN<Step<Tile>, Double> costFunction = new NNFunctionNN<Step<Tile>, Double>() {
@@ -187,16 +221,7 @@ public class MobilityModule extends Module {
         };
 
         // Find the path!
-        Optional<Path<Tile>> path = find( currentLocation, foundFunction, costFunction, remainingSpeed, neighboursFunction );
-        if (!path.isPresent())
-            return false;
-
-        remainingSpeed -= path.get().getCost();
-        getGameObject().getLocation().setContents( null );
-        getGameObject().setLocation( path.get().getTarget() );
-        path.get().getTarget().setContents( getGameObject() );
-
-        return true;
+        return find( currentLocation, foundFunction, costFunction, remainingSpeed, neighboursFunction );
     }
 
     /**
