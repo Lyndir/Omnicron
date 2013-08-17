@@ -30,6 +30,10 @@ public class GameController {
         return game;
     }
 
+    void addInternalGameListener(final GameListener gameListener) {
+        gameListeners.put( gameListener, null );
+    }
+
     @Authenticated
     public void addGameListener(final GameListener gameListener) {
         gameListeners.put( gameListener, Security.getCurrentPlayer() );
@@ -100,14 +104,21 @@ public class GameController {
         return false;
     }
 
-    void start() {
+    private void start() {
         Preconditions.checkState( !game.isRunning(), "The game cannot be started: It is already running." );
 
         game.setRunning( true );
-        fireNewTurn();
+        fireFor( null ).onGameStarted( game );
     }
 
-    void fireNewTurn() {
+    void end(final VictoryConditionType victoryCondition, @Nullable final Player victor) {
+        Preconditions.checkState( game.isRunning(), "The game cannot end: It isn't running yet." );
+
+        game.setRunning( false );
+        fireFor( null ).onGameEnded( game, victoryCondition, victor );
+    }
+
+    private void fireNewTurn() {
         onNewTurn();
 
         for (final GameListener gameListener : gameListeners.keySet())
@@ -116,6 +127,8 @@ public class GameController {
 
     protected void onNewTurn() {
         game.setCurrentTurn( new Turn( game.getCurrentTurn() ) );
+        if (!game.isRunning())
+            start();
 
         for (final Player player : ImmutableList.copyOf( game.getPlayers() )) {
             player.getController().fireReset();
@@ -131,16 +144,24 @@ public class GameController {
         return ImmutableSet.copyOf( game.getReadyPlayers() );
     }
 
-    GameListener fireFor(final PredicateNN<Player> playerCondition) {
+    /**
+     * Get a game listener proxy to call an event on that should be fired.
+     *
+     * @param playerCondition If not null, the event is only broadcast to internal game listeners and game listeners that pass the
+     *                        predicate.
+     */
+    GameListener fireFor(@Nullable final PredicateNN<Player> playerCondition) {
         return TypeUtils.newProxyInstance( GameListener.class, new InvocationHandler() {
             @Override
             @Nullable
             @SuppressWarnings("ProhibitedExceptionDeclared")
             public Object invoke(final Object proxy, final Method method, final Object[] args)
                     throws Throwable {
-                for (final Map.Entry<GameListener, Player> gameListenerEntry : gameListeners.entrySet())
-                    if (playerCondition.apply( gameListenerEntry.getValue() ))
+                for (final Map.Entry<GameListener, Player> gameListenerEntry : gameListeners.entrySet()) {
+                    Player gameListenerOwner = gameListenerEntry.getValue();
+                    if (gameListenerOwner == null || playerCondition == null || playerCondition.apply( gameListenerOwner ))
                         method.invoke( gameListenerEntry.getKey(), args );
+                }
 
                 return null;
             }

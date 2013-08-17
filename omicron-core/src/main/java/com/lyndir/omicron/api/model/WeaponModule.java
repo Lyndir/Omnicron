@@ -3,6 +3,7 @@ package com.lyndir.omicron.api.model;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.lyndir.lhunath.opal.system.util.PredicateNN;
+import com.lyndir.omicron.api.Authenticated;
 import com.lyndir.omicron.api.ChangeInt;
 import java.util.Random;
 import java.util.Set;
@@ -67,6 +68,7 @@ public class WeaponModule extends Module {
         return ImmutableSet.copyOf( supportedLayers );
     }
 
+    @Authenticated
     public boolean fireAt(final Tile target) {
         if (!getGameObject().isOwnedByCurrentPlayer())
             return false;
@@ -90,7 +92,7 @@ public class WeaponModule extends Module {
             public boolean apply(@Nonnull final Player input) {
                 return input.canObserve( getGameObject().getLocation() );
             }
-        } ).onWeaponFired( getGameObject(), target, repeatedChange.to( repeated ), ammunitionChange.to( ammunition ) );
+        } ).onWeaponFired( this, target, repeatedChange.to( repeated ), ammunitionChange.to( ammunition ) );
 
         Optional<GameObject> targetGameObject = target.getContents();
         if (targetGameObject.isPresent())

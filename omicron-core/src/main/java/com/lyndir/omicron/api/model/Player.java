@@ -3,6 +3,7 @@ package com.lyndir.omicron.api.model;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.lyndir.lhunath.opal.system.util.*;
+import com.lyndir.omicron.api.Authenticated;
 import com.lyndir.omicron.api.ChangeInt;
 import java.util.*;
 import javax.annotation.Nonnull;
@@ -53,11 +54,13 @@ public class Player extends MetaObject implements GameObserver {
         return controller;
     }
 
+    @Authenticated
     @Override
     public boolean canObserve(@Nonnull final Tile location) {
         return getController().canObserve( location );
     }
 
+    @Authenticated
     @Nonnull
     @Override
     public Iterable<Tile> listObservableTiles() {
@@ -111,12 +114,7 @@ public class Player extends MetaObject implements GameObserver {
 
         this.score = score;
 
-        getController().getGameController().fireFor( new PredicateNN<Player>() {
-            @Override
-            public boolean apply(@Nonnull final Player input) {
-                return true;
-            }
-        } ).onPlayerScore( this, scoreChange.to( this.score ) );
+        getController().getGameController().fireFor( null ).onPlayerScore( this, scoreChange.to( this.score ) );
     }
 
     int nextObjectID() {

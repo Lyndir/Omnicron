@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.lyndir.lhunath.opal.system.logging.Logger;
 import com.lyndir.lhunath.opal.system.util.*;
+import com.lyndir.omicron.api.Authenticated;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -54,12 +55,14 @@ public class GameObjectController<O extends GameObject> extends MetaObject imple
     }
 
     @Override
+    @Authenticated
     public boolean canObserve(@Nonnull final Tile location) {
         return getGameObject().onModuleElse( ModuleType.BASE, 0, false ).canObserve( location );
     }
 
     @Nonnull
     @Override
+    @Authenticated
     public Iterable<Tile> listObservableTiles() {
         return getGameObject().onModuleElse( ModuleType.BASE, 0, ImmutableList.of() ).listObservableTiles();
     }
@@ -76,10 +79,7 @@ public class GameObjectController<O extends GameObject> extends MetaObject imple
 
     void die() {
         getGameObject().getLocation().setContents( null );
-
-        Optional<Player> owner = getOwner();
-        if (owner.isPresent())
-            owner.get().removeObject( getGameObject() );
+        setOwner( null );
 
         getGameObject().getGame().getController().fireFor( new PredicateNN<Player>() {
             @Override
