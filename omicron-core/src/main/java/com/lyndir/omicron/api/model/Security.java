@@ -27,7 +27,7 @@ import com.lyndir.lhunath.opal.system.util.ObjectUtils;
  */
 public final class Security {
 
-    private static final ThreadLocal<Player> currentPlayerTL = new ThreadLocal<>();
+    private static final ThreadLocal<Player> currentPlayerTL = new InheritableThreadLocal<>();
 
     public static void authenticate(final Player currentPlayer, final PlayerKey playerKey) {
         Preconditions.checkArgument( currentPlayer.hasKey( playerKey ), "Cannot authenticate, key does not match player: ", currentPlayer );
