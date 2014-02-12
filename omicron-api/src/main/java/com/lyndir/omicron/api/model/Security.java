@@ -77,6 +77,10 @@ public final class Security {
         currentPlayerTL.set( currentPlayer );
     }
 
+    public static void invalidate() {
+        currentPlayerTL.set( null );
+    }
+
     static boolean isAuthenticated() {
         return currentPlayerTL.get() != null;
     }
