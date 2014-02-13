@@ -81,6 +81,10 @@ public final class Security {
         currentPlayerTL.set( null );
     }
 
+    public static boolean isAuthenticatedAs(IPlayer player) {
+        return currentPlayerTL.get() == player;
+    }
+
     static boolean isAuthenticated() {
         return currentPlayerTL.get() != null;
     }
